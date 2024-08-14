@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Checkpoints</title>
+    <link rel="stylesheet" href="style3.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Firebase App (modular) -->
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-analytics.js";
+      import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-auth.js";
+      import { getFirestore, doc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore.js";
+      import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-storage.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+        authDomain: "tolly-13344.firebaseapp.com",
+        databaseURL: "https://tolly-13344-default-rtdb.firebaseio.com",
+        projectId: "tolly-13344",
+        storageBucket: "tolly-13344.appspot.com",
+        messagingSenderId: "295767740497",
+        appId: "1:295767740497:web:5106369eab0090ea6e6870",
+        measurementId: "G-N1PSH9B4S2"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+
+      document.addEventListener('DOMContentLoaded', function() {
+          const profilePic = document.getElementById('profile-image');
+          const profileName = document.getElementById('profile-name');
+
+          onAuthStateChanged(auth, user => {
+              if (user) {
+                  const userId = user.uid;
+
+                  // Carregar informações do usuário
+                  const userDoc = doc(db, 'users', userId);
+                  getDoc(userDoc).then(docSnapshot => {
+                      if (docSnapshot.exists()) {
+                          const userData = docSnapshot.data();
+                          profileName.textContent = userData.name || 'Usuário';
+                          if (userData.profilePicUrl) {
+                              profilePic.src = userData.profilePicUrl;
+                          }
+                      }
+                  }).catch(error => {
+                      console.error('Erro ao obter dados do usuário: ', error);
+                  });
+              } else {
+                  // Redirecionar para a página de login se não estiver logado
+                  window.location.href = 'login.html';
+              }
+          });
+
+          const checkpointForm = document.getElementById('checkpoint-form');
+          const loginForm = document.getElementById('login-form');
+          const loginSection = document.getElementById('login-section');
+          const checkpointSection = document.getElementById('checkpoint-section');
+          let currentLat = null;
+          let currentLon = null;
+
+          // Get current location
+          if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition((position) => {
+                  currentLat = position.coords.latitude;
+                  currentLon = position.coords.longitude;
+              }, (error) => {
+                  console.error('Erro ao obter localização: ', error);
+                  alert('Erro ao obter localização. Verifique se a permissão de localização está ativada.');
+              });
+          } else {
+              alert('Geolocalização não é suportada neste navegador.');
+          }
+
+          // Login form submission
+          loginForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const email = document.getElementById('login-email').value;
+              const password = document.getElementById('login-password').value;
+
+              try {
+                  await signInWithEmailAndPassword(auth, email, password);
+                  loginSection.style.display = 'none';
+                  checkpointSection.style.display = 'block';
+              } catch (error) {
+                  console.error('Erro ao fazer login: ', error);
+                  alert('Erro ao fazer login. Verifique suas credenciais e tente novamente.');
+              }
+          });
+
+          onAuthStateChanged(auth, user => {
+              if (user) {
+                  loginSection.style.display = 'none';
+                  checkpointSection.style.display = 'block';
+
+                  checkpointForm.addEventListener('submit', async (e) => {
+                      e.preventDefault();
+
+                      const name = document.getElementById('checkpoint-name').value;
+                      const password = document.getElementById('checkpoint-password').value;
+
+                      if (currentLat !== null && currentLon !== null) {
+                          try {
+                              await addDoc(collection(db, 'checkpoints'), {
+                                  name: name,
+                                  lat: currentLat,
+                                  lon: currentLon,
+                                  password: password,
+                                  userId: user.uid
+                              });
+                              alert('Checkpoint cadastrado com sucesso!');
+                              checkpointForm.reset();
+                          } catch (error) {
+                              console.error('Erro ao cadastrar checkpoint: ', error);
+                              alert('Erro ao cadastrar checkpoint. Tente novamente.');
+                          }
+                      } else {
+                          alert('Localização não disponível. Tente novamente.');
+                      }
+                  });
+              } else {
+                  loginSection.style.display = 'block';
+                  checkpointSection.style.display = 'none';
+              }
+          });
+      });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div class="profile-container">
+                <div class="profile-pic" id="profile-pic">
+                    <img src="https://via.placeholder.com/80" alt="Foto de Perfil" id="profile-image">
+                </div>
+                <div id="profile-name">Nome do Usuário</div>
+            </div>
+        </div>
+
+        <div id="login-section">
+            <form id="login-form">
+                <h2>Login</h2>
+                <div class="form-group">
+                    <label for="login-email">Email:</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha:</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit">Entrar</button>
+            </form>
+        </div>
+
+        <div id="checkpoint-section" style="display: none;">
+            <form id="checkpoint-form">
+                <h2>Cadastro de Checkpoint</h2>
+                <div class="form-group">
+                    <label for="checkpoint-name">Nome do Checkpoint:</label>
+                    <input type="text" id="checkpoint-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="checkpoint-password">Senha do Checkpoint:</label>
+                    <input type="password" id="checkpoint-password" required>
+                </div>
+                <button type="submit">Cadastrar</button>
+            </form>
+        </div>
+
+        <div class="bottom-section">
+            <div class="timeline">
+                <div class="icons-left">
+                
+                </div>
+                <div class="icons-right">
+                    <a href="wifi.html" class="icon" data-action="back">
+                        <span class="material-icons">arrow_back</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

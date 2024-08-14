@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interface com Chat</title>
+    <link rel="stylesheet" href="./style4.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAZObdtphGScKmRZF_BkD903f6LQ9EFzuw&callback=initMap" async defer></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, getDoc, doc, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+            authDomain: "tolly-13344.firebaseapp.com",
+            databaseURL: "https://tolly-13344-default-rtdb.firebaseio.com",
+            projectId: "tolly-13344",
+            storageBucket: "tolly-13344.appspot.com",
+            messagingSenderId: "295767740497",
+            appId: "1:295767740497:web:5106369eab0090ea6e6870",
+            measurementId: "G-N1PSH9B4S2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUser;
+        let currentCheckpointId = null;
+
+        let map;
+        let markers = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    currentUser = user;
+                    initMap();
+                    loadCheckpoints();
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+
+            function initMap() {
+                map = new google.maps.Map(document.getElementById('map'), {
+                    center: { lat: -23.5505, lng: -46.6333 },
+                    zoom: 14
+                });
+            }
+
+            async function loadCheckpoints() {
+                const querySnapshot = await getDocs(collection(db, 'checkpointchat'));
+                querySnapshot.forEach(doc => {
+                    const checkpoint = doc.data();
+                    const marker = new google.maps.Marker({
+                        position: { lat: checkpoint.lat, lng: checkpoint.lon },
+                        map: map,
+                        title: checkpoint.name
+                    });
+                    markers.push(marker);
+
+                    const infowindow = new google.maps.InfoWindow({
+                        content: `<h3>${checkpoint.name}</h3><p>${checkpoint.description}</p><button onclick="openChat('${doc.id}')">Abrir Chat</button>`
+                    });
+
+                    marker.addListener('click', () => {
+                        infowindow.open(map, marker);
+                    });
+                });
+            }
+        });
+
+        window.openChat = function(checkpointId) {
+            currentCheckpointId = checkpointId;
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.innerHTML = ''; // Clear previous chat messages
+            loadMessages(checkpointId);
+            chatContainer.style.display = 'block';
+        }
+
+        function loadMessages(checkpointId) {
+            const q = query(collection(db, `checkpointchat/${checkpointId}/messages`), orderBy('timestamp'));
+            const chatContainer = document.getElementById('chat-container');
+            onSnapshot(q, (snapshot) => {
+                chatContainer.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const message = doc.data();
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('message');
+                    messageElement.innerHTML = `<strong><a href="profile.html?userId=${message.userId}">${message.userName}</a>:</strong> ${message.text} <span class="timestamp">${new Date(message.timestamp?.toDate()).toLocaleTimeString()}</span>`;
+                    chatContainer.appendChild(messageElement);
+                });
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+        }
+
+        function sendMessage(checkpointId, messageText) {
+            if (!messageText) return;
+            const messagesRef = collection(db, `checkpointchat/${checkpointId}/messages`);
+            addDoc(messagesRef, {
+                userName: currentUser.displayName || currentUser.email ,
+                text: messageText,
+                userId: currentUser.uid,
+                timestamp: serverTimestamp()
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendMessageBtn = document.getElementById('send-message-btn');
+            const messageInput = document.getElementById('message-input');
+
+            sendMessageBtn.addEventListener('click', () => {
+                if (currentCheckpointId) {
+                    sendMessage(currentCheckpointId, messageInput.value);
+                    messageInput.value = '';
+                } else {
+                    alert('Por favor, selecione um checkpoint no mapa.');
+                }
+            });
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    currentUser = user;
+                    const userId = user.uid;
+
+                    const userDoc = doc(db, 'users', userId);
+                    getDoc(userDoc).then(docSnapshot => {
+                        if (docSnapshot.exists()) {
+                            const userData = docSnapshot.data();
+                            document.getElementById('profile-name').innerText = userData.name || 'Nome do Usuário';
+                            if (userData.profilePicUrl) {
+                                document.getElementById('profile-image').src = userData.profilePicUrl;
+                            }
+                        }
+                    }).catch(error => {
+                        console.error('Erro ao obter dados do usuário: ', error);
+                    });
+
+                    updateChatNotification(userId);
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+        });
+
+        function updateChatNotification(userId) {
+            const chatIcon = document.querySelector('a[data-action="chat"]');
+            const notificationBadge = document.createElement('span');
+            notificationBadge.classList.add('notification-badge');
+            chatIcon.appendChild(notificationBadge);
+
+            const q = query(collection(db, 'checkpointchat'), where("userId", "==", userId), orderBy('timestamp', 'desc'));
+            onSnapshot(q, (snapshot) => {
+                let unreadCount = 0;
+                snapshot.forEach(doc => {
+                    if (!doc.data().read) unreadCount++;
+                });
+
+                if (unreadCount > 0) {
+                    notificationBadge.textContent = unreadCount;
+                    notificationBadge.style.display = 'block';
+                } else {
+                    notificationBadge.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div class="profile-container">
+                <div class="profile-pic" id="profile-pic">
+                    <img src="https://via.placeholder.com/80" alt="Foto de Perfil" id="profile-image">
+                </div>
+                <div class="username" id="profile-name">Nome do Usuário</div>
+            </div>
+        </div>
+        <div class="middle-section">
+            <div class="icons-left">
+                <a href="./carteira.html" class="icon">
+                    <span class="material-icons">account_balance_wallet</span>
+                </a>
+                <a href="./busca.html" class="icon">
+                    <span class="material-icons">search</span>
+                </a>
+                <a href="./wifi.html" class="icon">
+                    <span class="material-icons">wifi</span>
+                </a>
+            </div>
+            <div class="map" id="map"></div>
+            <div class="icons-right">
+                <a href="./cloud.html" class="icon">
+                    <span class="material-icons">cloud</span>
+                </a>
+                <a href="home.html" class="icon" data-action="home">
+                    <span class="material-icons">home</span>
+                </a>
+                <a href="cadastro.html" class="icon" data-action="add">
+                    <span class="material-icons">add</span>
+                </a>
+            </div>
+        </div>
+        <div id="chat-container" class="chat-container"></div>
+        <div class="bottom-section">
+            <input id="message-input" type="text" class="message-input" placeholder="Digite sua mensagem">
+            <button id="send-message-btn" class="icon"><span class="material-icons">send</span></button>
+        </div>
+    </div>
+    <style>
+        .notification-badge {
+            background: red;
+            color: white;
+            border-radius: 50%;
+            padding: 0 5px;
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: none;
+        }
+        .message a {
+            text-decoration: none;
+            color: blue;
+            cursor: pointer;
+        }
+        .message a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</body>
+</html>

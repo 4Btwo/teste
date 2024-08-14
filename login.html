@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <title>Sign Up | Log In</title>
+    <link rel="stylesheet" href="style2.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Adiciona o Firebase JS SDK mais recente -->
+    <script src="https://www.gstatic.com/firebasejs/9.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.7.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+<div class="wrapper">
+    <div class="title-text">
+        <div class="title login">
+            Login
+        </div>
+        <div class="title signup">
+            Sign Up
+        </div>
+    </div>
+    <div class="form-container">
+        <div class="slide-controls">
+            <input type="radio" name="slide" id="login" checked>
+            <input type="radio" name="slide" id="signup">
+            <label for="login" class="slide login">Login</label>
+            <label for="signup" class="slide signup">Sign Up</label>
+            <div class="slider-tab"></div>
+        </div>
+        <div class="form-inner">
+            <form action="#" class="login" id="login-form">
+                <div class="field">
+                    <input type="email" placeholder="Email Address" required id="login-email">
+                </div>
+                <div class="field">
+                    <input type="password" placeholder="Password" required id="login-password">
+                </div>
+                <div class="pass-link">
+                    <a href="#">Reset password?</a>
+                </div>
+                <div class="field btn">
+                    <div class="btn-layer"></div>
+                    <input type="submit" value="Login" id="login-btn">
+                </div>
+                <div class="signup-link">
+                    Don't Have Account? <a href="#">Create A New</a>
+                </div>
+            </form>
+            <form action="#" class="signup" id="signup-form">
+                <div class="field">
+                    <input type="email" placeholder="Email Address" required id="signup-email">
+                </div>
+                <div class="field">
+                    <input type="password" placeholder="Password" required id="signup-password">
+                </div>
+                <div class="field">
+                    <input type="password" placeholder="Confirm Password" required id="signup-confirm-password">
+                </div>
+                <div class="field btn">
+                    <div class="btn-layer"></div>
+                    <input type="submit" value="Sign Up" id="signup-btn">
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configuração do Firebase
+    var firebaseConfig = {
+        apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+        authDomain: "tolly-13344.firebaseapp.com",
+        projectId: "tolly-13344",
+        storageBucket: "tolly-13344.appspot.com",
+        messagingSenderId: "295767740497",
+        appId: "1:295767740497:web:5106369eab0090ea6e6870",
+        measurementId: "G-N1PSH9B4S2"
+    };
+
+    // Inicializa o Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    const loginText = document.querySelector(".title-text .login");
+    const loginForm = document.querySelector("form.login");
+    const signupForm = document.querySelector("form.signup");
+    const loginBtn = document.querySelector("label.login");
+    const signupBtn = document.querySelector("label.signup");
+    const signupLink = document.querySelector("form .signup-link a");
+
+    signupBtn.onclick = () => {
+        loginForm.style.marginLeft = "-50%";
+        loginText.style.marginLeft = "-50%";
+    };
+    loginBtn.onclick = () => {
+        loginForm.style.marginLeft = "0%";
+        loginText.style.marginLeft = "0%";
+    };
+    signupLink.onclick = () => {
+        signupBtn.click();
+        return false;
+    };
+
+    // Função de login
+    document.getElementById('login-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // Login bem-sucedido
+                var user = userCredential.user;
+                window.location.href = 'perfil.html';
+            })
+            .catch((error) => {
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                alert(errorMessage);
+            });
+    });
+
+    // Função de cadastro
+    document.getElementById('signup-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+        if (password !== confirmPassword) {
+            alert('Passwords do not match');
+            return;
+        }
+
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                alert('Signup successful');
+            })
+            .catch((error) => {
+                alert(error.message);
+            });
+    });
+</script>
+</body>
+</html>

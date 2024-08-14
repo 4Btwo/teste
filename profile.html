@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Usuário</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Firebase App (modular) -->
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-analytics.js";
+      import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-auth.js";
+      import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore.js";
+      import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-storage.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+        authDomain: "tolly-13344.firebaseapp.com",
+        databaseURL: "https://tolly-13344-default-rtdb.firebaseio.com",
+        projectId: "tolly-13344",
+        storageBucket: "tolly-13344.appspot.com",
+        messagingSenderId: "295767740497",
+        appId: "1:295767740497:web:5106369eab0090ea6e6870",
+        measurementId: "G-N1PSH9B4S2"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+
+      document.addEventListener('DOMContentLoaded', function() {
+          const profilePic = document.getElementById('profile-image');
+          const profileName = document.getElementById('profile-name');
+          const profileBio = document.getElementById('profile-bio');
+
+          // Obtém o userId da URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const userId = urlParams.get('userId');
+
+          if (!userId) {
+              console.error('User ID não fornecido na URL.');
+              window.location.href = 'login.html'; // Redireciona para login se não houver userId
+              return;
+          }
+
+          console.log('User ID obtido da URL:', userId);
+
+          // Carregar informações do usuário
+          const userDoc = doc(db, 'users', userId);
+          getDoc(userDoc).then(docSnapshot => {
+              if (docSnapshot.exists()) {
+                  const userData = docSnapshot.data();
+                  console.log('Dados do usuário obtidos:', userData);
+
+                  profileName.innerText = userData.name || 'Nome do Usuário';
+                  profileBio.innerText = userData.bio || 'Descrição do Usuário';
+                  if (userData.profilePicUrl) {
+                      profilePic.src = userData.profilePicUrl;
+                  }
+              } else {
+                  console.error('Usuário não encontrado.');
+                  profileName.innerText = 'Usuário não encontrado';
+              }
+          }).catch(error => {
+              console.error('Erro ao obter dados do usuário: ', error);
+          });
+      });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div class="profile-container">
+                <div class="profile-pic" id="profile-pic">
+                    <img src="https://via.placeholder.com/80" alt="Foto de Perfil" id="profile-image">
+                </div>
+                <div id="profile-name">Nome do Usuário</div>
+            </div>
+        </div>
+        <div class="middle-section">
+            <div class="icons-left">
+                <a href="cloud.html" class="icon" data-action="cloud">
+                    <span class="material-icons">cloud</span>
+                </a>
+                <a href="chat.html" class="icon" data-action="chat">
+                    <span class="material-icons">chat</span>
+                </a>
+                <a href="carteira.html" class="icon" data-action="wallet">
+                    <span class="material-icons">account_balance_wallet</span>
+                </a>
+            </div>
+            <div class="bio" id="bio">
+                <p id="profile-bio">Descrição do Usuário</p>
+            </div>
+            <div class="icons-right">
+                <a href="busca.html" class="icon" data-action="search">
+                    <span class="material-icons">search</span>
+                </a>
+                <a href="home.html" class="icon" data-action="home">
+                    <span class="material-icons">home</span>
+                </a>
+                <a href="wifi.html" class="icon" data-action="lock">
+                    <span class="material-icons">wifi</span>
+                </a>
+            </div>
+        </div>
+        <div class="bottom-section">
+            <div class="timeline">
+                <div class="item">Linha do Tempo 1</div>
+                <div class="item">Linha do Tempo 2</div>
+                <div class="item">Linha do Tempo 3</div>
+                <div class="item">Linha do Tempo 4</div>
+            </div>
+            <div class="footer">
+                <div class="footer-info">
+                    <div id="time">Hora: 12:00</div>
+                    <div id="temperature">Temperatura: 25°C</div>
+                    <div id="coordinates">Coordenadas: -23.5505, -46.6333</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

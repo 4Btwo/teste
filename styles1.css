@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Raleway', sans-serif;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: -webkit-linear-gradient(left, #9896F0, #FBC8D5);
+}
+
+.container {
+  width: 400px;
+  height: 600px;
+  box-shadow: 0px 15px 20px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  border-radius: 10px;
+  position: relative;
+  padding: 10px;
+}
+
+.indicador {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  color: #fff;
+}
+
+.perfil {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #ccc;
+  display: inline-block;
+  margin-right: 10px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.perfil img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+.carteira {
+  bottom: 135px;
+  left: 5px;
+  height: 50px;
+  border: 0px solid #000;
+  border-radius: 50%;
+  background-color: #fff;
+}
+
+.mapa {
+  bottom: 20px;
+  left: 9px;
+  width: 120px;
+  height: 120px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.icon .material-icons {
+  font-size: 24px;
+  vertical-align: middle;
+  color: #fff;
+}
+
+a.indicador {
+  width: 40px;
+  height: 40px;
+  display: inline-block;
+  margin: 5px;
+  background: -webkit-linear-gradient(left, #FBEE97, #ADEDD5);
+  text-align: center;
+  line-height: 53px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+a.indicador:hover {
+  background: #12e8f0;
+}
+
+a.indicador:hover .material-icons {
+  color: #fff;
+}
+
+a.indicador:nth-child(5) {
+  top: 160px;
+  right: 20px;
+}
+
+a.indicador:nth-child(6) {
+  top: 220px;
+}
+
+a.indicador:nth-child(7) {
+  top: 280px;
+}
+
+a.indicador:nth-child(8) {
+  top: 340px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;
+    margin: 10px;
+    box-shadow: none;
+  }
+
+  .perfil {
+    width: 60px;
+    height: 60px;
+  }
+
+  .mapa {
+    height: 150px;
+    line-height: 150px;
+  }
+}
+
+::selection {
+  background: #12e8f0;
+  color: #fff;
+}

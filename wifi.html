@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Usuário</title>
+    <link rel="stylesheet" href="style3.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAZObdtphGScKmRZF_BkD903f6LQ9EFzuw&libraries=places,directions"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div class="profile-container">
+                <div class="profile-pic" id="profile-pic">
+                    <img src="https://via.placeholder.com/80" alt="Foto de Perfil" id="profile-image">
+                </div>
+                <div class="username" id="profile-name">Nome do Usuário</div>
+            </div>
+        </div>
+        <div class="middle-section">
+            <div class="icons-left">
+                <a href="cloud.html" class="icon" data-action="cloud">
+                    <span class="material-icons">cloud</span>
+                </a>
+                <a href="chat.html" class="icon" data-action="chat">
+                    <span class="material-icons">chat</span>
+                </a>
+                <a href="carteira.html" class="icon" data-action="wallet">
+                    <span class="material-icons">account_balance_wallet</span>
+                </a>
+            </div>
+            <div class="map" id="map">Carregando mapa...</div>
+            <div class="icons-right">
+                <a href="busca.html" class="icon" data-action="search">
+                    <span class="material-icons">search</span>
+                </a>
+                <a href="home.html" class="icon" data-action="home">
+                    <span class="material-icons">home</span>
+                </a>
+                <a href="wifi.html"class="icon" style="top: 340px; right: 20px;">
+            <span class="material-icons">wifi</span>
+                </a>
+            </div>
+        </div>
+        <div class="bottom-section">
+            <div class="timeline navigation-section">
+                <a href="cadastros.html" class="icon" data-action="add">
+                    <span class="material-icons">add</span>
+                </a>
+                <a href="#" class="icon nav-icon" id="nav-icon">
+                    <span class="material-icons">navigation</span>
+                </a>
+            </div>
+            <div class="footer">
+                <div class="footer-info">
+                    <div id="time">Hora: 12:00</div>
+                    <div id="temperature">Temperatura: 25°C</div>
+                    <div id="coordinates">Coordenadas: -23.5505, -46.6333</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+            authDomain: "tolly-13344.firebaseapp.com",
+            databaseURL: "https://tolly-13344-default-rtdb.firebaseio.com",
+            projectId: "tolly-13344",
+            storageBucket: "tolly-13344.appspot.com",
+            messagingSenderId: "295767740497",
+            appId: "1:295767740497:web:5106369eab0090ea6e6870",
+            measurementId: "G-N1PSH9B4S2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const profilePic = document.getElementById('profile-image');
+            const profileName = document.getElementById('profile-name');
+            const mapElement = document.getElementById('map');
+            const navIcon = document.getElementById('nav-icon');
+            let selectedCheckpoint = null;
+            let currentPosition = null;
+
+            const map = L.map(mapElement).setView([-23.55052, -46.633308], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            let userMarker;
+            let directionsService = new google.maps.DirectionsService();
+            let directionsRenderer = new google.maps.DirectionsRenderer({
+                map: null,
+                suppressMarkers: true
+            });
+
+            function updateUserLocation(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                currentPosition = { lat, lon };
+
+                if (userMarker) {
+                    userMarker.setLatLng([lat, lon]);
+                } else {
+                    userMarker = L.marker([lat, lon], { color: 'blue' }).addTo(map)
+                        .bindPopup('Você está aqui')
+                        .openPopup();
+                }
+
+                map.setView([lat, lon], 15);
+                document.getElementById('coordinates').innerText = `Coordenadas: ${lat}, ${lon}`;
+            }
+
+            function showError(error) {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("Usuário negou a solicitação de Geolocalização.");
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        alert("Informações de localização não estão disponíveis.");
+                        break;
+                    case error.TIMEOUT:
+                        alert("A solicitação para obter a localização do usuário expirou.");
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        alert("Um erro desconhecido ocorreu.");
+                        break;
+                }
+            }
+
+            async function loadCheckpoints() {
+                try {
+                    const checkpointsCollection = collection(db, 'checkpoints');
+                    const checkpointsSnapshot = await getDocs(checkpointsCollection);
+                    checkpointsSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        const marker = L.marker([data.lat, data.lon]).addTo(map)
+                            .bindPopup(data.name)
+                            .openPopup();
+                        marker.on('click', function() {
+                            selectedCheckpoint = data;
+                            console.log("Checkpoint selecionado: ", selectedCheckpoint);
+                        });
+                    });
+                } catch (error) {
+                    console.error("Erro ao carregar checkpoints: ", error);
+                }
+            }
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    const userId = user.uid;
+
+                    const userDoc = doc(db, 'users', userId);
+                    getDoc(userDoc).then(docSnapshot => {
+                        if (docSnapshot.exists()) {
+                            const userData = docSnapshot.data();
+                            profileName.innerText = userData.name || 'Nome do Usuário';
+                            if (userData.profilePicUrl) {
+                                profilePic.src = userData.profilePicUrl;
+                            }
+                        }
+                    }).catch(error => {
+                        console.error('Erro ao obter dados do usuário: ', error);
+                    });
+
+                    loadCheckpoints();
+
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(updateUserLocation, showError);
+                        navigator.geolocation.watchPosition(updateUserLocation, showError);
+                    } else {
+                        alert("Geolocalização não é suportada por este navegador.");
+                    }
+                } else {
+                    console.log('Usuário não autenticado');
+                    window.location.href = "login.html";
+                }
+            });
+
+            function updateTime() {
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                document.getElementById('time').innerText = `Hora: ${hours}:${minutes}`;
+            }
+
+            function updateTemperature() {
+                // Supondo que você tenha uma API para obter a temperatura
+                const temperature = 25; // Aqui você colocaria o valor real
+                document.getElementById('temperature').innerText = `Temperatura: ${temperature}°C`;
+            }
+
+            setInterval(updateTime, 60000);
+            setInterval(updateTemperature, 60000);
+            updateTime();
+            updateTemperature();
+
+            navIcon.addEventListener('click', function() {
+                if (currentPosition) {
+                    const { lat, lon } = currentPosition;
+
+                    if (selectedCheckpoint) {
+                        console.log("Iniciando navegação para o checkpoint: ", selectedCheckpoint);
+                        const destinationLat = selectedCheckpoint.lat;
+                        const destinationLon = selectedCheckpoint.lon;
+
+                        const request = {
+                            origin: new google.maps.LatLng(lat, lon),
+                            destination: new google.maps.LatLng(destinationLat, destinationLon),
+                            travelMode: google.maps.TravelMode.DRIVING
+                        };
+
+                        directionsService.route(request, function(result, status) {
+                            if (status == google.maps.DirectionsStatus.OK) {
+                                console.log("Direções obtidas com sucesso: ", result);
+                                directionsRenderer.setMap(map);
+                                directionsRenderer.setDirections(result);
+
+                                map.eachLayer(function(layer) {
+                                    if (layer instanceof L.Polyline) {
+                                        map.removeLayer(layer);
+                                    }
+                                });
+
+                                const route = result.routes[0];
+                                const routeCoords = [];
+                                for (let i = 0; i < route.legs[0].steps.length; i++) {
+                                    const step = route.legs[0].steps[i];
+                                    routeCoords.push([step.start_location.lat(), step.start_location.lng()]);
+                                }
+                                L.polyline(routeCoords, { color: 'blue' }).addTo(map);
+
+                            } else {
+                                alert('Erro ao obter direções: ' + status);
+                            }
+                        });
+                    } else {
+                        alert('Por favor, selecione um checkpoint no mapa.');
+                    }
+                } else {
+                    alert('Erro ao obter localização atual. Por favor, verifique as permissões de localização.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

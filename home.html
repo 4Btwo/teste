@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interface com Indicadores</title>
+    <link rel="stylesheet" href="../../../styles1.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Firebase App (modular) -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore.js";
+        import { getStorage } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-storage.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+            authDomain: "tolly-13344.firebaseapp.com",
+            databaseURL: "https://tolly-13344-default-rtdb.firebaseio.com",
+            projectId: "tolly-13344",
+            storageBucket: "tolly-13344.appspot.com",
+            messagingSenderId: "295767740497",
+            appId: "1:295767740497:web:5106369eab0090ea6e6870",
+            measurementId: "G-N1PSH9B4S2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const profilePic = document.getElementById('profile-pic');
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    const userId = user.uid;
+
+                    // Carregar informações do usuário
+                    const userDoc = doc(db, 'users', userId);
+                    getDoc(userDoc).then(docSnapshot => {
+                        if (docSnapshot.exists()) {
+                            const userData = docSnapshot.data();
+                            if (userData.profilePicUrl) {
+                                profilePic.src = userData.profilePicUrl;
+                            }
+                        }
+                    }).catch(error => {
+                        console.error('Erro ao obter dados do usuário: ', error);
+                    });
+                } else {
+                    // Redirecionar para a página de login se não estiver logado
+                    window.location.href = 'login.html';
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="perfil">
+			<a href="../../../perfil.html">
+            <img id="profile-pic" src="../../../foto_perfil.jpg" alt="Foto de Perfil">
+			</a>
+        </div>
+        <a href="../../../carteira.html" class="carteira indicador">
+            <span class="material-icons">account_balance_wallet</span>
+        </a>
+        <div class="mapa indicador" id="map"></div>
+        <a href="../../../cloud.html" class="indicador" style="top: 160px; right: 20px;">
+            <span class="material-icons">cloud</span>
+        </a>
+        <a href="../../../chat.html" class="indicador" style="top: 220px; right: 20px;">
+            <span class="material-icons">message</span>
+        </a>
+        <a href="../../../busca.html" class="indicador" style="top: 280px; right: 20px;">
+            <span class="material-icons">search</span>
+        </a>
+        <a href="../../../wifi.html" class="indicador" style="top: 340px; right: 20px;">
+            <span class="material-icons">wifi</span>
+        </a>
+    </div>
+
+    <script>
+        function initMap() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    var map = new google.maps.Map(document.getElementById('map'), {
+                        zoom: 15,
+                        center: pos
+                    });
+                    var marker = new google.maps.Marker({
+                        position: pos,
+                        map: map
+                    });
+                }, function() {
+                    handleLocationError(true, map.getCenter());
+                });
+            } else {
+                // Browser doesn't support Geolocation
+                handleLocationError(false, map.getCenter());
+            }
+        }
+
+        function handleLocationError(browserHasGeolocation, pos) {
+            var map = new google.maps.Map(document.getElementById('map'), {
+                center: {lat: -34.397, lng: 150.644},
+                zoom: 6
+            });
+            var infoWindow = new google.maps.InfoWindow({map: map});
+            infoWindow.setPosition(pos);
+            infoWindow.setContent(browserHasGeolocation ?
+                'Error: The Geolocation service failed.' :
+                'Error: Your browser doesn\'t support geolocation.');
+        }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAZObdtphGScKmRZF_BkD903f6LQ9EFzuw&callback=initMap">
+    </script>
+</body>
+</html>

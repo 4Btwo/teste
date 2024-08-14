@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Usuário</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Firebase App (modular) -->
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-analytics.js";
+      import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-auth.js";
+      import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore.js";
+      import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-storage.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+        authDomain: "tolly-13344.firebaseapp.com",
+        databaseURL: "https://tolly-13344-default-rtdb.firebaseio.com",
+        projectId: "tolly-13344",
+        storageBucket: "tolly-13344.appspot.com",
+        messagingSenderId: "295767740497",
+        appId: "1:295767740497:web:5106369eab0090ea6e6870",
+        measurementId: "G-N1PSH9B4S2"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+
+      document.addEventListener('DOMContentLoaded', function() {
+          const profilePic = document.getElementById('profile-image');
+          const profilePicUpload = document.getElementById('profile-pic-upload');
+          const profileName = document.getElementById('profile-name');
+          const profileBio = document.getElementById('profile-bio');
+          const saveProfile = document.getElementById('save-profile');
+
+          onAuthStateChanged(auth, user => {
+              if (user) {
+                  const userId = user.uid;
+
+                  // Carregar informações do usuário
+                  const userDoc = doc(db, 'users', userId);
+                  getDoc(userDoc).then(docSnapshot => {
+                      if (docSnapshot.exists()) {
+                          const userData = docSnapshot.data();
+                          profileName.value = userData.name || '';
+                          profileBio.value = userData.bio || '';
+                          if (userData.profilePicUrl) {
+                              profilePic.src = userData.profilePicUrl;
+                          }
+                      }
+                  }).catch(error => {
+                      console.error('Erro ao obter dados do usuário: ', error);
+                  });
+
+                  // Atualizar foto de perfil
+                  profilePicUpload.addEventListener('change', function(event) {
+                      const file = event.target.files[0];
+                      if (file) {
+                          const storageRef = ref(storage, 'profile_pics/' + userId);
+                          uploadBytes(storageRef, file).then(() => {
+                              return getDownloadURL(storageRef);
+                          }).then(url => {
+                              profilePic.src = url;
+                              return updateDoc(userDoc, {
+                                  profilePicUrl: url
+                              });
+                          }).then(() => {
+                              console.log('Foto de perfil atualizada com sucesso.');
+                          }).catch(error => {
+                              console.error('Erro ao atualizar foto de perfil: ', error);
+                          });
+                      }
+                  });
+
+                  // Salvar perfil
+                  saveProfile.addEventListener('click', function() {
+                      const name = profileName.value;
+                      const bio = profileBio.value;
+
+                      setDoc(userDoc, {
+                          name: name,
+                          bio: bio
+                      }, { merge: true }).then(() => {
+                          alert('Perfil atualizado com sucesso!');
+                      }).catch(error => {
+                          console.error('Erro ao atualizar o perfil: ', error);
+                      });
+                  });
+
+                  // Função para atualizar a hora em tempo real
+                  function updateTime() {
+                      const now = new Date();
+                      const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                      document.getElementById('time').innerText = `Hora: ${timeString}`;
+                  }
+
+                  // Função para obter a temperatura (simulação)
+                  function updateTemperature() {
+                      // Substitua este trecho com uma chamada real à API de temperatura
+                      const temperature = "25°C"; // Simulação de temperatura
+                      document.getElementById('temperature').innerText = `Temperatura: ${temperature}`;
+                  }
+
+                  // Função para obter a localização do usuário
+                  function updateUserLocation(position) {
+                      const lat = position.coords.latitude;
+                      const lon = position.coords.longitude;
+                      document.getElementById('coordinates').innerText = `Coordenadas: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                  }
+
+                  // Função para tratar erros de geolocalização
+                  function showError(error) {
+                      switch (error.code) {
+                          case error.PERMISSION_DENIED:
+                              alert("Usuário negou a solicitação de Geolocalização.");
+                              break;
+                          case error.POSITION_UNAVAILABLE:
+                              alert("Informações de localização não estão disponíveis.");
+                              break;
+                          case error.TIMEOUT:
+                              alert("A solicitação para obter a localização do usuário expirou.");
+                              break;
+                          case error.UNKNOWN_ERROR:
+                              alert("Um erro desconhecido ocorreu.");
+                              break;
+                      }
+                  }
+
+                  // Atualiza a hora a cada segundo
+                  setInterval(updateTime, 1000);
+
+                  // Atualiza a temperatura a cada minuto (simulado)
+                  setInterval(updateTemperature, 60000);
+
+                  // Obtém a localização do usuário
+                  if (navigator.geolocation) {
+                      navigator.geolocation.watchPosition(updateUserLocation, showError, {
+                          enableHighAccuracy: true,
+                          timeout: 5000,
+                          maximumAge: 0
+                      });
+                  } else {
+                      alert("Geolocalização não é suportada pelo seu navegador.");
+                  }
+
+                  // Atualiza imediatamente a hora e a temperatura ao carregar a página
+                  updateTime();
+                  updateTemperature();
+              } else {
+                  // Redirecionar para a página de login se não estiver logado
+                  window.location.href = 'login.html';
+              }
+          });
+      });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div class="profile-container">
+                <div class="profile-pic" id="profile-pic">
+                    <img src="https://via.placeholder.com/80" alt="Foto de Perfil" id="profile-image">
+                </div>
+                <input type="file" id="profile-pic-upload" accept="image/*" style="display: none;">
+                <label for="profile-pic-upload" class="upload-button">Alterar Foto</label>
+                <input type="text" id="profile-name" placeholder="Nome do Usuário">
+            </div>
+        </div>
+        <div class="middle-section">
+            <div class="icons-left">
+                <a href="cloud.html" class="icon" data-action="cloud">
+                    <span class="material-icons">cloud</span>
+                </a>
+                <a href="chat.html" class="icon" data-action="chat">
+                    <span class="material-icons">chat</span>
+                </a>
+                <a href="carteira.html" class="icon" data-action="wallet">
+                    <span class="material-icons">account_balance_wallet</span>
+                </a>
+            </div>
+            <div class="bio" id="bio">
+                <textarea id="profile-bio" placeholder="Escreva sua biografia aqui..."></textarea>
+                <button id="save-profile">Salvar Perfil</button>
+            </div>
+            <div class="icons-right">
+                <a href="busca.html" class="icon" data-action="search">
+                    <span class="material-icons">search</span>
+                </a>
+                <a href="home.html" class="icon" data-action="home">
+                    <span class="material-icons">home</span>
+                </a>
+                <a href="wifi.html" class="icon" data-action="lock">
+                    <span class="material-icons">wifi</span>
+                </a>
+            </div>
+        </div>
+        <div class="bottom-section">
+            <div class="timeline">
+                <div class="item">Linha do Tempo 1</div>
+                <div class="item">Linha do Tempo 2</div>
+                <div class="item">Linha do Tempo 3</div>
+                <div class="item">Linha do Tempo 4</div>
+            </div>
+            <div class="footer">
+                <div class="footer-info">
+                    <div id="time">Hora: 12:00</div>
+                    <div id="temperature">Temperatura: 25°C</div>
+                    <div id="coordinates">Coordenadas: -23.5505, -46.6333</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

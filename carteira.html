@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carteira</title>
+    <link rel="stylesheet" href="style3.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        #map {
+            height: 200px;
+        }
+    </style>
+    <!-- Firebase App (modular) -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8JmSF_YWt3_n9TbU2EFXjcdo2J7zvxUs",
+            authDomain: "tolly-13344.firebaseapp.com",
+            databaseURL: "https://tolly-13344-default-rtdb.firebaseio.com",
+            projectId: "tolly-13344",
+            storageBucket: "tolly-13344.appspot.com",
+            messagingSenderId: "295767740497",
+            appId: "1:295767740497:web:5106369eab0090ea6e6870",
+            measurementId: "G-N1PSH9B4S2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const profilePic = document.getElementById('profile-image');
+            const profileName = document.getElementById('profile-name');
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    const userId = user.uid;
+
+                    // Carregar informações do usuário
+                    const userDoc = doc(db, 'users', userId);
+                    getDoc(userDoc).then(docSnapshot => {
+                        if (docSnapshot.exists()) {
+                            const userData = docSnapshot.data();
+                            profileName.innerText = userData.name || 'Nome do Usuário';
+                            if (userData.profilePicUrl) {
+                                profilePic.src = userData.profilePicUrl;
+                            }
+                        }
+                    }).catch(error => {
+                        console.error('Erro ao obter dados do usuário: ', error);
+                    });
+                } else {
+                    // Redirecionar para a página de login se não estiver logado
+                    window.location.href = 'login.html';
+                }
+            });
+
+            // Função para atualizar a hora em tempo real
+            function updateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                document.getElementById('time').innerText = `Hora: ${timeString}`;
+            }
+
+            // Função para simular a atualização da temperatura
+            function updateTemperature() {
+                // Aqui você pode fazer uma chamada para uma API real de temperatura
+                const temperature = "25°C"; // Substitua isto por uma chamada real à API
+                document.getElementById('temperature').innerText = `Temperatura: ${temperature}`;
+            }
+
+            // Atualiza a hora a cada segundo
+            setInterval(updateTime, 1000);
+
+            // Atualiza a temperatura a cada minuto (simulado)
+            setInterval(updateTemperature, 60000);
+
+            // Atualiza imediatamente a hora e a temperatura ao carregar a página
+            updateTime();
+            updateTemperature();
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="top-section">
+            <div class="profile-container">
+                <div class="profile-pic" id="profile-pic">
+                    <img src="https://via.placeholder.com/80" alt="Foto de Perfil" id="profile-image">
+                </div>
+                <div class="username" id="profile-name">Nome do Usuário</div>
+            </div>
+        </div>
+        <div class="middle-section">
+            <div class="icons-left">
+                <a href="cloud.html" class="icon" data-action="cloud">
+                    <span class="material-icons">cloud</span>
+                </a>
+                <a href="chat.html" class="icon" data-action="chat">
+                    <span class="material-icons">chat</span>
+                </a>
+                <a href="carteira.html" class="icon" data-action="wallet">
+                    <span class="material-icons">account_balance_wallet</span>
+                </a>
+            </div>
+            <div class="map" id="map">
+                minhas redes wifi
+            </div>
+            <div class="icons-right">
+                <a href="busca.html" class="icon" data-action="search">
+                    <span class="material-icons">search</span>
+                </a>
+                <a href="home.html" class="icon" data-action="home">
+                    <span class="material-icons">home</span>
+                </a>
+                <a href="wifi.html"class="icon" style="top: 340px; right: 20px;">
+                    <span class="material-icons">wifi</span>
+                </a>
+            </div>
+        </div>
+        <div class="bottom-section">
+            <div class="timeline">
+                <!-- Ícone de Cadastro com sinal de "+" -->
+                <a href="cadastros.html" class="icon" data-action="add">
+                    <span class="material-icons">add</span>
+                </a>
+            </div>
+            <div class="footer">
+                <div class="footer-info">
+                    <div id="time">Hora: 12:00</div>
+                    <div id="temperature">Temperatura: 25°C</div>
+                    <div id="coordinates">Coordenadas: -23.5505, -46.6333</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
